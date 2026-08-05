@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure Share</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-slide-in { animation: fadeSlideIn 260ms ease-out; }
+    .soft-blur { filter: blur(10px); user-select: none; }
+  </style>
+</head>
+<body class="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-100">
+  <div id="app" class="min-h-screen"></div>
+
+  <script>
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const app = document.getElementById('app');
+    const params = new URLSearchParams(location.search);
+    const tokenParam = params.get('token');
+
+    const escapeHtml = (text) => String(text ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+
+    function randomToken() {
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function sha256(text) {
+      const buffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function formatRemaining(ms) {
+      if (ms <= 0) return 'Expired';
+      const total = Math.floor(ms / 1000);
+      const days = Math.floor(total / 86400);
+      const hours = Math.floor((total % 86400) / 3600);
+      const mins = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+      if (days > 0) return `${days}d ${hours}h`;
+      if (hours > 0) return `${hours}h ${mins}m`;
+      if (mins > 0) return `${mins}m ${secs}s`;
+      return `${secs}s`;
+    }
+
+    async function createSecret(secretText, label, expiresInMinutes) {
+      const token = randomToken();
+      const tokenHash = await sha256(token);
+      const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString();
+      const now = new Date().toISOString();
+
+      const { error } = await sb.from('secrets').insert([{ 
+        token_hash: tokenHash,
+        label,
+        secret_text: secretText,
+        expires_at: expiresAt,
+        viewed: false,
+        created_at: now,
+        updated_at: now,
+        access_count: 0,
+        last_accessed_at: null
+      }]);
+      if (error) throw error;
+
+      return { token, shareUrl: `${location.origin}${location.pathname}?token=${encodeURIComponent(token)}` };
+    }
+
+    async function loadSecretByToken(token) {
+      const tokenHash = await sha256(token);
+      const { data, error } = await sb.from('secrets').select('*').eq('token_hash', tokenHash).single();
+      if (error) throw error;
+      return data;
+    }
+
+    async function markViewedByToken(token, currentAccessCount = 0) {
+      const tokenHash = await sha256(token);
+      const now = new Date().toISOString();
+      const { error } = await sb.from('secrets').update({
+        viewed: true,
+        viewed_at: now,
+        last_accessed_at: now,
+        access_count: currentAccessCount + 1,
+        updated_at: now
+      }).eq('token_hash', tokenHash);
+      if (error) throw error;
+    }
+
+    function renderSender() {
+      app.innerHTML = `
+        <div class="max-w-6xl mx-auto px-4 py-8 md:py-12">
+          <header class="text-center max-w-3xl mx-auto">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 text-cyan-300 text-sm font-medium">Secure one-time secret sharing</div>
+            <h1 class="mt-5 text-4xl md:text-6xl font-bold tracking-tight">Share sensitive credentials securely</h1>
+            <p class="mt-4 text-slate-400 text-lg leading-relaxed">Create a one-time link or QR code for passwords, account details, or other private information.</p>
+          </header>
+          <main class="mt-10 grid lg:grid-cols-12 gap-6">
+            <section class="lg:col-span-7 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl shadow-black/20">
+              <h2 class="text-2xl font-semibold">Create a secret</h2>
+              <p class="text-slate-400 mt-1">Paste the content you want to share once.</p>
+              <div class="mt-6 space-y-5">
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Secret content</label>
+                  <textarea id="secretInput" rows="8" class="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none" placeholder="Paste a password, API key, login detail, or sensitive note..."></textarea>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Expiration</label>
+                    <select id="expirySelect" class="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                      <option value="10">10 minutes</option>
+                      <option value="60">1 hour</option>
+                      <option value="1440" selected>24 hours</option>
+                      <option value="10080">7 days</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Recipient label</label>
+                    <input id="labelInput" type="text" class="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500" placeholder="Optional label" />
+                  </div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                  <button id="createBtn" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-5 py-4 font-semibold text-slate-950 hover:bg-cyan-400 transition">Generate secure link</button>
+                  <button id="clearBtn" class="inline-flex items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 px-5 py-4 font-medium text-slate-200 hover:bg-slate-800 transition">Clear form</button>
+                </div>
+              </div>
+            </section>
+            <aside class="lg:col-span-5 space-y-6">
+              <section class="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-3xl p-6 shadow-xl">
+                <h2 class="text-xl font-semibold">Your secure link</h2>
+                <p class="text-slate-400 mt-1">Copy the link or share the QR code.</p>
+                <div class="mt-5 space-y-4">
+                  <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-4">
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                      <span class="text-sm text-slate-400">One-time URL</span>
+                      <span id="statusBadge" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300">Waiting</span>
+                    </div>
+                    <div class="flex gap-2">
+                      <input id="shareLink" readonly class="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-slate-100" placeholder="Your generated link will appear here" />
+                      <button id="copyBtn" class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-slate-100 hover:bg-slate-700 transition">Copy</button>
+                    </div>
+                  </div>
+                  <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                    <div class="text-sm text-slate-400 mb-3">QR code</div>
+                    <div id="qrBox" class="flex items-center justify-center min-h-[220px] rounded-xl bg-white p-4 text-slate-500">QR code will appear here</div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <button id="newBtn" class="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 font-medium text-slate-200 hover:bg-slate-800 transition">Start over</button>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </main>
+        </div>
+      `;
+
+      const secretInput = document.getElementById('secretInput');
+      const expirySelect = document.getElementById('expirySelect');
+      const labelInput = document.getElementById('labelInput');
+      const createBtn = document.getElementById('createBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      const shareLink = document.getElementById('shareLink');
+      const qrBox = document.getElementById('qrBox');
+      const copyBtn = document.getElementById('copyBtn');
+      const newBtn = document.getElementById('newBtn');
+      const statusBadge = document.getElementById('statusBadge');
+
+      function setBadge(text, kind = 'neutral') {
+        const classes = { neutral: 'bg-slate-800 text-slate-300', success: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20', warn: 'bg-amber-500/15 text-amber-300 border border-amber-500/20', danger: 'bg-rose-500/15 text-rose-300 border border-rose-500/20' };
+        statusBadge.className = `text-xs px-2.5 py-1 rounded-full ${classes[kind]}`;
+        statusBadge.textContent = text;
+      }
+
+      function renderQr(url) {
+        qrBox.innerHTML = '';
+        new QRCode(qrBox, { text: url, width: 180, height: 180, colorDark: '#0f172a', colorLight: '#ffffff' });
+      }
+
+      createBtn.addEventListener('click', async () => {
+        const text = secretInput.value.trim();
+        if (!text) return alert('Please enter a secret first.');
+        createBtn.disabled = true;
+        createBtn.textContent = 'Generating...';
+        try {
+          const minutes = Number(expirySelect.value);
+          const { shareUrl } = await createSecret(text, labelInput.value.trim(), minutes);
+          shareLink.value = shareUrl;
+          renderQr(shareUrl);
+          setBadge('Ready to share', 'success');
+        } catch (e) {
+          alert(e.message || 'Failed to create secret');
+          setBadge('Error', 'danger');
+        } finally {
+          createBtn.disabled = false;
+          createBtn.textContent = 'Generate secure link';
+        }
+      });
+
+      clearBtn.addEventListener('click', () => {
+        secretInput.value = '';
+        labelInput.value = '';
+        expirySelect.value = '1440';
+        shareLink.value = '';
+        qrBox.innerHTML = 'QR code will appear here';
+        setBadge('Waiting', 'neutral');
+      });
+
+      copyBtn.addEventListener('click', async () => {
+        if (!shareLink.value) return;
+        await navigator.clipboard.writeText(shareLink.value);
+        const old = copyBtn.textContent;
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => copyBtn.textContent = old, 1200);
+      });
+
+      newBtn.addEventListener('click', () => { location.href = location.pathname; });
+    }
+
+    function renderRecipient(record, token) {
+      const remaining = record?.expires_at ? (new Date(record.expires_at).getTime() - Date.now()) : 0;
+      if (!record) {
+        app.innerHTML = `<div class="min-h-screen flex items-center justify-center px-4"><div class="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center fade-slide-in"><div class="mx-auto w-14 h-14 rounded-full bg-rose-500/15 flex items-center justify-center text-rose-300 text-2xl">!</div><h1 class="mt-5 text-3xl font-bold">Secret unavailable</h1><p class="mt-3 text-slate-400">This link has already been used or no longer exists.</p></div></div>`;
+        return;
+      }
+
+      if (remaining <= 0) {
+        app.innerHTML = `<div class="min-h-screen flex items-center justify-center px-4"><div class="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center fade-slide-in"><div class="mx-auto w-14 h-14 rounded-full bg-amber-500/15 flex items-center justify-center text-amber-300 text-2xl">⏳</div><h1 class="mt-5 text-3xl font-bold">Link expired</h1><p class="mt-3 text-slate-400">This secret is no longer available.</p></div></div>`;
+        return;
+      }
+
+      if (record.viewed) {
+        app.innerHTML = `<div class="min-h-screen flex items-center justify-center px-4 py-8"><div class="max-w-2xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl text-center fade-slide-in"><div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-500/15 text-slate-300 text-sm font-medium">Already revealed</div><h1 class="mt-5 text-3xl md:text-4xl font-bold">Secret already viewed</h1><p class="mt-3 text-slate-400">This secret was already opened and cannot be revealed again.</p></div></div>`;
+        return;
+      }
+
+      app.innerHTML = `
+        <div class="min-h-screen flex items-center justify-center px-4 py-8">
+          <div class="max-w-2xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl">
+            <div class="text-center">
+              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 text-cyan-300 text-sm font-medium">One-time secret</div>
+              <h1 class="mt-5 text-3xl md:text-4xl font-bold">Reveal the credential</h1>
+              <p class="mt-3 text-slate-400">Click once to view the secret. After that, it cannot be viewed again.</p>
+            </div>
+
+            <div class="mt-8 grid md:grid-cols-2 gap-4">
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+                <div class="text-xs uppercase tracking-wide text-slate-500">Recipient label</div>
+                <div class="mt-2 text-slate-200 font-medium">${record.label ? escapeHtml(record.label) : 'Private secret'}</div>
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+                <div class="text-xs uppercase tracking-wide text-slate-500">Expires in</div>
+                <div id="countdown" class="mt-2 text-slate-200 font-medium">${formatRemaining(remaining)}</div>
+              </div>
+            </div>
+
+            <div class="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+              <button id="revealBtn" class="w-full rounded-2xl bg-emerald-500 px-5 py-4 font-semibold text-slate-950 hover:bg-emerald-400 transition">Reveal once</button>
+            </div>
+
+            <div id="resultArea" class="mt-5 hidden"></div>
+            <div class="mt-6 text-sm text-slate-400">This secret will be marked as used after reveal.</div>
+          </div>
+        </div>
+      `;
+
+      const countdownEl = document.getElementById('countdown');
+      const revealBtn = document.getElementById('revealBtn');
+      const resultArea = document.getElementById('resultArea');
+      const countdownTimer = setInterval(async () => {
+        const fresh = await loadSecretByToken(token).catch(() => null);
+        if (!fresh) { clearInterval(countdownTimer); location.reload(); return; }
+        const left = new Date(fresh.expires_at).getTime() - Date.now();
+        if (left <= 0) { clearInterval(countdownTimer); location.reload(); return; }
+        countdownEl.textContent = formatRemaining(left);
+      }, 1000);
+
+      revealBtn.addEventListener('click', async () => {
+        try {
+          const fresh = await loadSecretByToken(token);
+          if (!fresh || fresh.viewed || new Date(fresh.expires_at).getTime() <= Date.now()) {
+            clearInterval(countdownTimer);
+            resultArea.classList.remove('hidden');
+            resultArea.innerHTML = `<div class="fade-slide-in rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-rose-300">This secret has already been revealed or expired.</div>`;
+            revealBtn.remove();
+            return;
+          }
+
+          await markViewedByToken(token, fresh.access_count || 0);
+          clearInterval(countdownTimer);
+          revealBtn.remove();
+          resultArea.classList.remove('hidden');
+          resultArea.innerHTML = `
+            <div class="fade-slide-in rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 transition-all duration-300">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div class="text-sm font-medium text-emerald-300">Secret revealed</div>
+                <button id="copySecretBtn" class="rounded-xl bg-slate-800 px-3 py-2 text-xs font-medium text-slate-100 hover:bg-slate-700 transition">Copy</button>
+              </div>
+              <pre id="secretValue" class="whitespace-pre-wrap break-words text-slate-100 font-mono text-sm leading-6 soft-blur">${escapeHtml(fresh.secret_text)}</pre>
+            </div>
+          `;
+
+          const secretValue = document.getElementById('secretValue');
+          setTimeout(() => secretValue && secretValue.classList.remove('soft-blur'), 120);
+          const copySecretBtn = document.getElementById('copySecretBtn');
+          copySecretBtn.addEventListener('click', async () => {
+            await navigator.clipboard.writeText(fresh.secret_text);
+            const old = copySecretBtn.textContent;
+            copySecretBtn.textContent = 'Copied';
+            setTimeout(() => copySecretBtn.textContent = old, 1200);
+          });
+        } catch (e) {
+          clearInterval(countdownTimer);
+          resultArea.classList.remove('hidden');
+          resultArea.innerHTML = `<div class="fade-slide-in rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-rose-300">${escapeHtml(e.message || 'Failed to reveal secret')}</div>`;
+          revealBtn.remove();
+        }
+      });
+    }
+
+    (async function init() {
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes('YOUR_SUPABASE_URL') || SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY')) {
+        app.innerHTML = '<div class="p-8 text-red-300">Please set YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY in the HTML.</div>';
+        return;
+      }
+
+      if (tokenParam) {
+        try {
+          const tokenHash = await sha256(tokenParam);
+          const { data, error } = await sb.from('secrets').select('*').eq('token_hash', tokenHash).single();
+          if (error) throw error;
+          renderRecipient(data, tokenParam);
+        } catch (e) {
+          renderRecipient(null, tokenParam);
+        }
+      } else {
+        renderSender();
+      }
+    })();
+  </script>
+</body>
+</html>
