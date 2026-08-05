@@ -144,10 +144,6 @@ with your Supabase project values.
 - The secret is marked as viewed after first reveal.
 - RLS should remain enabled on the table.
 
-## Screenshots
-
-Add screenshots here after you run the app locally and capture the UI.
-
 ## License
 
 This project is licensed under the MIT License.
