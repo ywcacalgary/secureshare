@@ -12,6 +12,34 @@
     .fade-slide-in { animation: fadeSlideIn 260ms ease-out; }
     .soft-blur { filter: blur(10px); user-select: none; }
   </style>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>
+      <defs>
+        <linearGradient id='bg' x1='0%' y1='0%' x2='100%' y2='100%'>
+          <stop offset='0%' stop-color='%230f172a'/>
+          <stop offset='55%' stop-color='%231d4ed8'/>
+          <stop offset='100%' stop-color='%2306b6d4'/>
+        </linearGradient>
+        <linearGradient id='lock' x1='0%' y1='0%' x2='100%' y2='100%'>
+          <stop offset='0%' stop-color='%23ffffff'/>
+          <stop offset='100%' stop-color='%23e2e8f0'/>
+        </linearGradient>
+      </defs>
+
+      <rect width='64' height='64' rx='16' fill='url(%23bg)'/>
+      <rect x='19' y='28' width='26' height='19' rx='5' fill='url(%23lock)'/>
+
+      <path d='M25 28v-5a7 7 0 0 1 14 0v5' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round'/>
+
+      <circle cx='16' cy='20' r='3.5' fill='%23ffffff'/>
+      <circle cx='48' cy='18' r='3.5' fill='%23ffffff'/>
+      <circle cx='48' cy='42' r='3.5' fill='%23ffffff'/>
+
+      <path d='M19 20 L44 19' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' opacity='0.95'/>
+      <path d='M19 22 L44 39' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' opacity='0.95'/>
+
+      <circle cx='32' cy='37.5' r='2.5' fill='%230f172a'/>
+    </svg>">
 </head>
 <body class="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-100">
   <div id="app" class="min-h-screen"></div>
