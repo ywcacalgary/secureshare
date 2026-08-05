@@ -39,76 +39,31 @@ Secure Share is a one-time secret sharing app that lets users generate expiring,
 
 ```text
 secure-share/
-└── secureshare.html
+├── secureshare.html
+├── database.sql
+└── README.md
 ```
 
 ## Supabase setup
 
-### 1. Create a table
+All database setup is included in `database.sql`. Run that file in the Supabase SQL Editor. It creates the `secrets` table, the `audit_logs` table, the triggers, and the RLS policies.
 
-Run this SQL in Supabase:
+### Database file
 
-```sql
-create table public.secrets (
-  id uuid primary key default gen_random_uuid(),
-  token_hash text not null unique,
-  label text,
-  secret_text text not null,
-  expires_at timestamptz not null,
-  viewed boolean not null default false,
-  viewed_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  created_by text,
-  viewed_by text,
-  last_accessed_at timestamptz,
-  access_count integer not null default 0
-);
+- `database.sql`
 
-alter table public.secrets enable row level security;
-```
+### What it includes
 
-### 2. Add update timestamp trigger
+- Encrypted secret storage fields (`ciphertext`, `iv`) instead of plaintext secret data.
+- `token_hash` lookup key.
+- `audit_logs` table.
+- `updated_at` trigger.
+- Audit trigger.
+- RLS policies for the browser app.
 
-```sql
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
+### RLS note
 
-create trigger secrets_set_updated_at
-before update on public.secrets
-for each row
-execute function public.set_updated_at();
-```
-
-### 3. Add policies
-
-```sql
-create policy "Allow public insert secrets"
-on public.secrets
-for insert
-to anon
-with check (true);
-
-create policy "Allow public read secrets"
-on public.secrets
-for select
-to anon
-using (true);
-
-create policy "Allow public update secrets"
-on public.secrets
-for update
-to anon
-using (true)
-with check (true);
-```
+The included policies are broad enough for the demo workflow that uses the Supabase anon key from the browser. If you later add an Edge Function or backend, you should tighten the policies further.
 
 ## Configuration
 
@@ -139,14 +94,15 @@ with your Supabase project values.
 
 ## Security notes
 
-- The app stores only the hashed token in Supabase.
+- The app stores only encrypted data in Supabase.
 - The raw token is only used in the share URL.
+- The decryption key is placed in the URL fragment, not the query string.
 - The secret is marked as viewed after first reveal.
 - RLS should remain enabled on the table.
 
-## License
+## Database file
 
-This project is licensed under the MIT License.
+Run `database.sql` in the Supabase SQL Editor to create the tables, triggers, and RLS policies needed by the app.
 
 
 ## Local configuration
@@ -159,3 +115,7 @@ const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 ```
 
 These placeholders are intentionally kept in the repo so live credentials are not committed.
+
+## License
+
+This project is licensed under the MIT License.
