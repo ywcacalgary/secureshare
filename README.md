@@ -147,3 +147,15 @@ with your Supabase project values.
 ## License
 
 This project is licensed under the MIT License.
+
+
+## Local configuration
+
+If you are running `secureshare.html` directly, replace these values in the file before use:
+
+```js
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+```
+
+These placeholders are intentionally kept in the repo so live credentials are not committed.
