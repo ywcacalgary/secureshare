@@ -70,8 +70,8 @@ The included policies are broad enough for the demo workflow that uses the Supab
 In `secureshare.html`, replace:
 
 ```js
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
 ```
 
 with your Supabase project values.
@@ -110,8 +110,8 @@ Run `database.sql` in the Supabase SQL Editor to create the tables, triggers, an
 If you are running `secureshare.html` directly, replace these values in the file before use:
 
 ```js
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
 ```
 
 These placeholders are intentionally kept in the repo so live credentials are not committed.
