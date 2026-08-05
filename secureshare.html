@@ -359,9 +359,11 @@
                 <div id="countdown" class="mt-2 text-slate-200 font-medium">${formatRemaining(remaining)}</div>
               </div>
             </div>
-            <div class="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+
+            <div id="revealWrap" class="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
               <button id="revealBtn" class="w-full rounded-2xl bg-emerald-500 px-5 py-4 font-semibold text-slate-950 hover:bg-emerald-400 transition">Reveal once</button>
             </div>
+
             <div id="resultArea" class="mt-5 hidden"></div>
             <div class="mt-6 text-sm text-slate-400">This secret will be marked as used after reveal.</div>
           </div>
@@ -386,13 +388,14 @@
             clearInterval(countdownTimer);
             resultArea.classList.remove('hidden');
             resultArea.innerHTML = `<div class="fade-slide-in rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-rose-300">This secret has already been revealed or expired.</div>`;
-            revealBtn.remove();
+            document.getElementById('revealWrap')?.remove();
             return;
           }
 
           const plain = await decryptSecret(fresh.ciphertext, fresh.iv, key);
           await markViewedByToken(token, fresh.access_count || 0);
           clearInterval(countdownTimer);
+          document.getElementById('revealWrap')?.remove();
           revealBtn.remove();
           resultArea.classList.remove('hidden');
           resultArea.innerHTML = `
@@ -418,6 +421,7 @@
           clearInterval(countdownTimer);
           resultArea.classList.remove('hidden');
           resultArea.innerHTML = `<div class="fade-slide-in rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-rose-300">${escapeHtml(e.message || 'Failed to reveal secret')}</div>`;
+          document.getElementById('revealWrap')?.remove();
           revealBtn.remove();
         }
       });
