@@ -17,8 +17,8 @@
   <div id="app" class="min-h-screen"></div>
 
   <script>
-    const SUPABASE_URL = '__SUPABASE_URL__';
-    const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const app = document.getElementById('app');
@@ -127,7 +127,7 @@
       }]);
       if (error) throw error;
 
-      const shareUrl = `${location.origin}${location.pathname}?token=${encodeURIComponent(token)}&k=${encodeURIComponent(encrypted.key)}`;
+      const shareUrl = `${location.origin}${location.pathname}?token=${encodeURIComponent(token)}#k=${encodeURIComponent(encrypted.key)}`;
       return { token, shareUrl, key: encrypted.key };
     }
 
@@ -159,18 +159,15 @@
             <h1 class="mt-5 text-4xl md:text-6xl font-bold tracking-tight">Share sensitive credentials securely</h1>
             <p class="mt-4 text-slate-400 text-lg leading-relaxed">Create a one-time link or QR code for passwords, account details, or other private information.</p>
           </header>
-
           <main class="mt-10 grid lg:grid-cols-12 gap-6">
             <section class="lg:col-span-7 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl shadow-black/20">
               <h2 class="text-2xl font-semibold">Create a secret</h2>
               <p class="text-slate-400 mt-1">Paste the content you want to share once. It will be encrypted before saving.</p>
-
               <div class="mt-6 space-y-5">
                 <div>
                   <label class="block text-sm font-medium text-slate-300 mb-2">Secret content</label>
                   <textarea id="secretInput" rows="8" class="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none" placeholder="Paste a password, API key, login detail, or sensitive note..."></textarea>
                 </div>
-
                 <div class="grid md:grid-cols-2 gap-4">
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Expiration</label>
@@ -186,19 +183,16 @@
                     <input id="labelInput" type="text" class="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500" placeholder="Optional label" />
                   </div>
                 </div>
-
                 <div class="flex flex-col sm:flex-row gap-3 pt-2">
                   <button id="createBtn" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-5 py-4 font-semibold text-slate-950 hover:bg-cyan-400 transition">Generate secure link</button>
                   <button id="clearBtn" class="inline-flex items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 px-5 py-4 font-medium text-slate-200 hover:bg-slate-800 transition">Clear form</button>
                 </div>
               </div>
             </section>
-
             <aside class="lg:col-span-5 space-y-6">
               <section class="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-3xl p-6 shadow-xl">
                 <h2 class="text-xl font-semibold">Your secure link</h2>
-                <p class="text-slate-400 mt-1">Copy the link or share the QR code. The link includes the decryption key for recipient use.</p>
-
+                <p class="text-slate-400 mt-1">Copy the link or share the QR code. The key is in the URL fragment.</p>
                 <div class="mt-5 space-y-4">
                   <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-4">
                     <div class="flex items-center justify-between gap-3 mb-2">
@@ -210,12 +204,10 @@
                       <button id="copyBtn" class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-slate-100 hover:bg-slate-700 transition">Copy</button>
                     </div>
                   </div>
-
                   <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
                     <div class="text-sm text-slate-400 mb-3">QR code</div>
                     <div id="qrBox" class="flex items-center justify-center min-h-[220px] rounded-xl bg-white p-4 text-slate-500">QR code will appear here</div>
                   </div>
-
                   <div class="grid grid-cols-2 gap-3">
                     <button id="newBtn" class="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 font-medium text-slate-200 hover:bg-slate-800 transition">Start over</button>
                   </div>
@@ -313,7 +305,6 @@
               <h1 class="mt-5 text-3xl md:text-4xl font-bold">Reveal the credential</h1>
               <p class="mt-3 text-slate-400">Click once to view the secret. After that, it cannot be viewed again.</p>
             </div>
-
             <div class="mt-8 grid md:grid-cols-2 gap-4">
               <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
                 <div class="text-xs uppercase tracking-wide text-slate-500">Recipient label</div>
@@ -324,11 +315,9 @@
                 <div id="countdown" class="mt-2 text-slate-200 font-medium">${formatRemaining(remaining)}</div>
               </div>
             </div>
-
             <div class="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
               <button id="revealBtn" class="w-full rounded-2xl bg-emerald-500 px-5 py-4 font-semibold text-slate-950 hover:bg-emerald-400 transition">Reveal once</button>
             </div>
-
             <div id="resultArea" class="mt-5 hidden"></div>
             <div class="mt-6 text-sm text-slate-400">This secret will be marked as used after reveal.</div>
           </div>
@@ -401,8 +390,9 @@
           const tokenHash = await sha256(tokenParam);
           const { data, error } = await sb.from('secrets').select('*').eq('token_hash', tokenHash).single();
           if (error) throw error;
-          const key = params.get('k');
+          const key = new URLSearchParams(location.hash.replace(/^#/, '')).get('k');
           if (!key) throw new Error('Missing decryption key');
+          history.replaceState(null, '', location.pathname + location.search);
           renderRecipient(data, tokenParam, key);
         } catch (e) {
           renderRecipient(null, tokenParam, null);

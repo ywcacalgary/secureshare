@@ -29,8 +29,8 @@ jobs:
         run: |
           mkdir -p dist
           sed \
-            -e "s|__SUPABASE_URL__|${SUPABASE_URL}|g" \
-            -e "s|__SUPABASE_ANON_KEY__|${SUPABASE_ANON_KEY}|g" \
+            -e "s|YOUR_SUPABASE_URL|${SUPABASE_URL}|g" \
+            -e "s|YOUR_SUPABASE_ANON_KEY|${SUPABASE_ANON_KEY}|g" \
             secureshare.html > dist/index.html
 
       - name: Setup Pages
