@@ -144,10 +144,18 @@ with your Supabase project values.
 - The secret is marked as viewed after first reveal.
 - RLS should remain enabled on the table.
 
-## Screenshots
-
-Add screenshots here after you run the app locally and capture the UI.
-
 ## License
 
 This project is licensed under the MIT License.
+
+
+## Local configuration
+
+If you are running `secureshare.html` directly, replace these values in the file before use:
+
+```js
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+```
+
+These placeholders are intentionally kept in the repo so live credentials are not committed.
