@@ -31,7 +31,7 @@ jobs:
           sed \
             -e "s|__SUPABASE_URL__|${SUPABASE_URL}|g" \
             -e "s|__SUPABASE_ANON_KEY__|${SUPABASE_ANON_KEY}|g" \
-            secureshare.template.html > dist/index.html
+            secureshare.html > dist/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
