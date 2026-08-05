@@ -17,13 +17,13 @@ jobs:
       - name: Replace placeholders
         shell: bash
         env:
-          SUPABASE_URL: ${{ secrets.YOUR_SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.YOUR_SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           mkdir -p dist
           sed \
-            -e "s|YOUR_SUPABASE_URL|${SUPABASE_URL}|g" \
-            -e "s|YOUR_SUPABASE_ANON_KEY|${SUPABASE_ANON_KEY}|g" \
+            -e "s|__SUPABASE_URL__|${SUPABASE_URL}|g" \
+            -e "s|__SUPABASE_ANON_KEY__|${SUPABASE_ANON_KEY}|g" \
             secureshare.html > dist/index.html
 
       - name: Upload artifact
