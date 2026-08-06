@@ -101,7 +101,7 @@
 
       return Array.from(
         bytes,
-        (b) => b.toString(16).padStart(2, '0')
+        (byte) => byte.toString(16).padStart(2, '0')
       ).join('');
     }
 
@@ -112,8 +112,8 @@
     function bytesToBase64(bytes) {
       let binary = '';
 
-      bytes.forEach((b) => {
-        binary += String.fromCharCode(b);
+      bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
       });
 
       return btoa(binary);
@@ -137,7 +137,7 @@
       );
 
       return Array.from(new Uint8Array(buffer))
-        .map((b) => b.toString(16).padStart(2, '0'))
+        .map((byte) => byte.toString(16).padStart(2, '0'))
         .join('');
     }
 
@@ -207,29 +207,31 @@
       return new TextDecoder().decode(plainBuffer);
     }
 
-    function formatRemaining(ms) {
-      if (ms <= 0) return 'Expired';
+    function formatRemaining(milliseconds) {
+      if (milliseconds <= 0) return 'Expired';
 
-      const total = Math.floor(ms / 1000);
+      const total = Math.floor(milliseconds / 1000);
       const days = Math.floor(total / 86400);
       const hours = Math.floor((total % 86400) / 3600);
-      const mins = Math.floor((total % 3600) / 60);
-      const secs = total % 60;
+      const minutes = Math.floor((total % 3600) / 60);
+      const seconds = total % 60;
 
       if (days > 0) return `${days}d ${hours}h`;
-      if (hours > 0) return `${hours}h ${mins}m`;
-      if (mins > 0) return `${mins}m ${secs}s`;
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      if (minutes > 0) return `${minutes}m ${seconds}s`;
 
-      return `${secs}s`;
+      return `${seconds}s`;
     }
 
     async function createSecret(secretText, label, expiresInMinutes) {
       const token = randomToken();
       const tokenHash = await sha256(token);
       const encrypted = await encryptSecret(secretText);
+
       const expiresAt = new Date(
         Date.now() + expiresInMinutes * 60 * 1000
       ).toISOString();
+
       const now = new Date().toISOString();
 
       const { error } = await sb.from('secrets').insert([
@@ -306,50 +308,180 @@
 
     function renderSender() {
       app.innerHTML = `
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-          <header class="text-center max-w-3xl mx-auto px-2 sm:px-0">
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 text-cyan-300 text-sm font-medium">
+        <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:py-12 lg:px-8">
+
+          <header class="mx-auto max-w-3xl px-2 text-center">
+            <div class="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300">
               Secure one-time secret sharing
             </div>
 
-            <h1 class="mt-5 text-4xl md:text-6xl font-bold tracking-tight">
+            <h1 class="mt-5 text-4xl font-bold tracking-tight md:text-6xl">
               Share sensitive credentials securely
             </h1>
 
-            <p class="mt-4 text-slate-400 text-lg leading-relaxed">
+            <p class="mt-4 text-lg leading-relaxed text-slate-400">
               Create a one-time link or QR code for passwords, account details,
               or other private information.
             </p>
           </header>
 
-          <main class="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <section class="lg:col-span-7 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-3xl p-5 sm:p-6 md:p-8 shadow-2xl shadow-black/20">
+          <section class="mt-10 grid gap-4 pb-6 md:grid-cols-2">
+            <article class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-5 text-cyan-400"
+                aria-hidden="true"
+              >
+                <line x1="10" x2="14" y1="2" y2="2"></line>
+                <line x1="12" x2="15" y1="14" y2="11"></line>
+                <circle cx="12" cy="14" r="8"></circle>
+              </svg>
+
+              <h2 class="mt-4 text-lg font-semibold text-slate-100">
+                Single-use, expiring
+              </h2>
+
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">
+                Every handover is one view only, with an expiry you choose
+                between 10 minutes and 7 days. After that, the link is dead.
+              </p>
+            </article>
+
+            <article class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-5 text-cyan-400"
+                aria-hidden="true"
+              >
+                <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"></path>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                <path d="m16 19 2 2 4-4"></path>
+              </svg>
+
+              <h2 class="mt-4 text-lg font-semibold text-slate-100">
+                Nothing in plaintext
+              </h2>
+
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">
+                Emails, chats, and printouts only ever carry the link. The
+                credential itself is encrypted at rest and decrypted once,
+                on view.
+              </p>
+            </article>
+
+            <article class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-5 text-cyan-400"
+                aria-hidden="true"
+              >
+                <rect width="5" height="5" x="3" y="3" rx="1"></rect>
+                <rect width="5" height="5" x="16" y="3" rx="1"></rect>
+                <rect width="5" height="5" x="3" y="16" rx="1"></rect>
+                <path d="M21 16h-3a2 2 0 0 0-2 2v3"></path>
+                <path d="M21 21v.01"></path>
+                <path d="M12 7v3a2 2 0 0 1-2 2H7"></path>
+                <path d="M3 12h.01"></path>
+                <path d="M12 3h.01"></path>
+                <path d="M12 16v.01"></path>
+                <path d="M16 12h1"></path>
+                <path d="M21 12v.01"></path>
+                <path d="M12 21v-1"></path>
+              </svg>
+
+              <h2 class="mt-4 text-lg font-semibold text-slate-100">
+                Link or QR code
+              </h2>
+
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">
+                Hand a QR code across the desk on day one, or send the same
+                secure link to the recipient’s inbox.
+              </p>
+            </article>
+
+            <article class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-5 text-cyan-400"
+                aria-hidden="true"
+              >
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                <path d="M21 21a8 8 0 0 0-5-7.32"></path>
+              </svg>
+
+              <h2 class="mt-4 text-lg font-semibold text-slate-100">
+                Recipient labels
+              </h2>
+
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">
+                Add an optional recipient label to make each secure handover easier to
+                identify before it is shared.
+              </p>
+            </article>
+          </section>
+
+          <main class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <section class="lg:col-span-7 rounded-3xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20 backdrop-blur sm:p-6 md:p-8">
               <h2 class="text-2xl font-semibold">
                 Create a secret
               </h2>
 
-              <p class="text-slate-400 mt-1">
+              <p class="mt-1 text-slate-400">
                 Paste the content you want to share once.
                 It will be encrypted before saving.
               </p>
 
               <div class="mt-6 space-y-5">
                 <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">
+                  <label class="mb-2 block text-sm font-medium text-slate-300">
                     Secret content
                   </label>
 
                   <textarea
                     id="secretInput"
                     rows="8"
-                    class="w-full rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                    class="w-full resize-none rounded-2xl border border-slate-700 bg-slate-950/70 p-4 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     placeholder="Paste a password, API key, login detail, or sensitive note..."
                   ></textarea>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
+                    <label class="mb-2 block text-sm font-medium text-slate-300">
                       Expiration
                     </label>
 
@@ -365,7 +497,7 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
+                    <label class="mb-2 block text-sm font-medium text-slate-300">
                       Recipient label
                     </label>
 
@@ -378,17 +510,19 @@
                   </div>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                <div class="flex flex-col gap-3 pt-2 sm:flex-row">
                   <button
                     id="createBtn"
-                    class="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-5 py-4 font-semibold text-slate-950 hover:bg-cyan-400 transition w-full sm:w-auto"
+                    type="button"
+                    class="inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-cyan-500 px-5 py-4 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-wait disabled:bg-cyan-700 disabled:text-slate-300 disabled:opacity-100 sm:w-auto"
                   >
                     Generate secure link
                   </button>
 
                   <button
                     id="clearBtn"
-                    class="inline-flex items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 px-5 py-4 font-medium text-slate-200 hover:bg-slate-800 transition w-full sm:w-auto"
+                    type="button"
+                    class="inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-5 py-4 text-sm font-medium text-slate-200 shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-900 sm:w-auto"
                   >
                     Clear form
                   </button>
@@ -396,68 +530,72 @@
               </div>
             </section>
 
-            <aside class="lg:col-span-5 space-y-6">
+            <aside class="space-y-6 lg:col-span-5">
               <section
                 id="resultSection"
                 tabindex="-1"
-                class="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-3xl p-6 shadow-xl"
+                class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl backdrop-blur"
               >
                 <h2 class="text-xl font-semibold">
                   Your secure link
                 </h2>
 
-                <p class="text-slate-400 mt-1">
+                <p class="mt-1 text-slate-400">
                   Copy the link, email it, or share the QR code.
                   The key is in the URL fragment.
                 </p>
 
                 <div class="mt-5 space-y-4">
                   <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-4">
-                    <div class="flex items-center justify-between gap-3 mb-2">
+                    <div class="mb-2 flex items-center justify-between gap-3">
                       <span class="text-sm text-slate-400">
                         One-time URL
                       </span>
 
                       <span
                         id="statusBadge"
-                        class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300"
+                        class="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-slate-300"
                       >
                         Waiting
                       </span>
                     </div>
 
-                    <div class="flex flex-col sm:flex-row gap-2">
+                    <div class="flex flex-col gap-2">
                       <input
                         id="shareLink"
                         readonly
-                        class="w-full flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-slate-100"
+                        class="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 font-mono text-xs text-slate-100"
                         placeholder="Link appears here"
                       />
 
-                      <button
-                        id="copyBtn"
-                        class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-slate-100 hover:bg-slate-700 transition w-full sm:w-auto"
-                      >
-                        Copy
-                      </button>
+                      <div class="grid grid-cols-2 gap-2">
+                        <button
+                          id="copyBtn"
+                          type="button"
+                          class="min-h-11 w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm font-medium text-slate-100 shadow-sm transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                        >
+                          Copy
+                        </button>
 
-                      <button
-                        id="emailBtn"
-                        class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-slate-100 hover:bg-slate-700 transition w-full sm:w-auto"
-                      >
-                        Email
-                      </button>
+                        <button
+                          id="emailBtn"
+                          type="button"
+                          class="min-h-11 w-full cursor-pointer rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-slate-100 shadow-sm transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                        >
+                          Email
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-0 overflow-hidden">
-                    <div class="px-4 pt-4 pb-3 text-sm text-slate-400">
+                  <div class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/50">
+                    <div class="px-4 pb-3 pt-4 text-sm text-slate-400">
                       QR code
                     </div>
 
                     <div
                       id="qrBox"
-                      class="relative w-full aspect-square overflow-hidden rounded-xl bg-white p-0"
+                      class="relative aspect-square w-full overflow-hidden rounded-xl bg-white p-0"
                     >
                       <div class="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
                         QR code will appear here
@@ -486,13 +624,13 @@
       function setBadge(text, kind = 'neutral') {
         const classes = {
           neutral: 'bg-slate-800 text-slate-300',
-          success: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20',
-          warn: 'bg-amber-500/15 text-amber-300 border border-amber-500/20',
-          danger: 'bg-rose-500/15 text-rose-300 border border-rose-500/20'
+          success: 'border border-emerald-500/20 bg-emerald-500/15 text-emerald-300',
+          warn: 'border border-amber-500/20 bg-amber-500/15 text-amber-300',
+          danger: 'border border-rose-500/20 bg-rose-500/15 text-rose-300'
         };
 
         statusBadge.className =
-          `text-xs px-2.5 py-1 rounded-full ${classes[kind]}`;
+          `rounded-full px-2.5 py-1 text-xs ${classes[kind]}`;
 
         statusBadge.textContent = text;
       }
@@ -505,7 +643,7 @@
         );
 
         const qrWrapper = document.createElement('div');
-        qrWrapper.className = 'w-full h-full';
+        qrWrapper.className = 'h-full w-full';
 
         qrBox.appendChild(qrWrapper);
 
@@ -522,10 +660,10 @@
         if (qrVisual) {
           qrVisual.classList.add(
             'block',
-            'w-full',
             'h-full',
-            'max-w-full',
-            'max-h-full'
+            'w-full',
+            'max-h-full',
+            'max-w-full'
           );
 
           qrVisual.style.width = '100%';
@@ -534,26 +672,25 @@
 
         const logo = document.createElement('img');
 
-        logo.src = 'assets/YWCA_icon_plum.png'
-
+        logo.src = 'assets/YWCA_icon_plum.png';
         logo.alt = 'YWCA SecureShare';
 
         logo.className = `
           absolute
-          top-1/2
           left-1/2
+          top-1/2
           z-10
-          w-1/4
           h-1/4
+          w-1/4
           -translate-x-1/2
           -translate-y-1/2
-          object-contain
           rounded-xl
           bg-white
           p-0
+          object-contain
+          shadow-2xl
           ring-4
           ring-white
-          shadow-2xl
           drop-shadow-[0_4px_8px_rgba(0,0,0,0.55)]
         `;
 
@@ -596,8 +733,8 @@
           renderQr(shareUrl);
           setBadge('Ready', 'success');
           focusResultSection();
-        } catch (e) {
-          alert(e.message || 'Failed to create secret');
+        } catch (error) {
+          alert(error.message || 'Failed to create secret');
           setBadge('Error', 'danger');
         } finally {
           createBtn.disabled = false;
@@ -625,11 +762,11 @@
 
         await navigator.clipboard.writeText(shareLink.value);
 
-        const old = copyBtn.textContent;
+        const oldText = copyBtn.textContent;
         copyBtn.textContent = 'Copied';
 
         setTimeout(() => {
-          copyBtn.textContent = old;
+          copyBtn.textContent = oldText;
         }, 1200);
       });
 
@@ -647,9 +784,9 @@
 
       if (!record) {
         app.innerHTML = `
-          <div class="min-h-screen flex items-center justify-center px-4">
-            <div class="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center fade-slide-in">
-              <div class="mx-auto w-14 h-14 rounded-full bg-rose-500/15 flex items-center justify-center text-rose-300 text-2xl">
+          <div class="flex min-h-screen items-center justify-center px-4">
+            <div class="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900 p-8 text-center shadow-2xl fade-slide-in">
+              <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-rose-500/15 text-2xl text-rose-300">
                 !
               </div>
 
@@ -669,9 +806,9 @@
 
       if (remaining <= 0) {
         app.innerHTML = `
-          <div class="min-h-screen flex items-center justify-center px-4">
-            <div class="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center fade-slide-in">
-              <div class="mx-auto w-14 h-14 rounded-full bg-amber-500/15 flex items-center justify-center text-amber-300 text-2xl">
+          <div class="flex min-h-screen items-center justify-center px-4">
+            <div class="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900 p-8 text-center shadow-2xl fade-slide-in">
+              <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-500/15 text-2xl text-amber-300">
                 ⏳
               </div>
 
@@ -691,13 +828,13 @@
 
       if (record.viewed) {
         app.innerHTML = `
-          <div class="min-h-screen flex items-center justify-center px-4 py-8">
-            <div class="max-w-2xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl text-center fade-slide-in">
-              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-500/15 text-slate-300 text-sm font-medium">
+          <div class="flex min-h-screen items-center justify-center px-4 py-8">
+            <div class="w-full max-w-2xl rounded-3xl border border-slate-800 bg-slate-900/90 p-6 text-center shadow-2xl fade-slide-in md:p-8">
+              <div class="inline-flex items-center gap-2 rounded-full bg-slate-500/15 px-4 py-2 text-sm font-medium text-slate-300">
                 Already revealed
               </div>
 
-              <h1 class="mt-5 text-3xl md:text-4xl font-bold">
+              <h1 class="mt-5 text-3xl font-bold md:text-4xl">
                 Secret already viewed
               </h1>
 
@@ -712,14 +849,14 @@
       }
 
       app.innerHTML = `
-        <div class="min-h-screen flex items-center justify-center px-4 py-8">
-          <div class="max-w-2xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl">
+        <div class="flex min-h-screen items-center justify-center px-4 py-8">
+          <div class="w-full max-w-2xl rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-2xl md:p-8">
             <div class="text-center">
-              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 text-cyan-300 text-sm font-medium">
+              <div class="inline-flex items-center gap-2 rounded-full bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-300">
                 One-time secret
               </div>
 
-              <h1 class="mt-5 text-3xl md:text-4xl font-bold">
+              <h1 class="mt-5 text-3xl font-bold md:text-4xl">
                 Reveal the credential
               </h1>
 
@@ -728,13 +865,13 @@
               </p>
             </div>
 
-            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
                 <div class="text-xs uppercase tracking-wide text-slate-500">
                   Recipient label
                 </div>
 
-                <div class="mt-2 text-slate-200 font-medium">
+                <div class="mt-2 font-medium text-slate-200">
                   ${record.label ? escapeHtml(record.label) : 'Private secret'}
                 </div>
               </div>
@@ -744,7 +881,7 @@
                   Expires in
                 </div>
 
-                <div id="countdown" class="mt-2 text-slate-200 font-medium">
+                <div id="countdown" class="mt-2 font-medium text-slate-200">
                   ${formatRemaining(remaining)}
                 </div>
               </div>
@@ -753,7 +890,8 @@
             <div id="revealWrap" class="mt-5 rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
               <button
                 id="revealBtn"
-                class="w-full rounded-2xl bg-emerald-500 px-5 py-4 font-semibold text-slate-950 hover:bg-emerald-400 transition"
+                type="button"
+                class="w-full cursor-pointer rounded-2xl bg-emerald-500 px-5 py-4 font-semibold text-slate-950 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
               >
                 Reveal once
               </button>
@@ -807,7 +945,7 @@
             resultArea.classList.remove('hidden');
 
             resultArea.innerHTML = `
-              <div class="fade-slide-in rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-rose-300">
+              <div class="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-rose-300 fade-slide-in">
                 This secret has already been revealed or expired.
               </div>
             `;
@@ -835,15 +973,16 @@
           resultArea.classList.remove('hidden');
 
           resultArea.innerHTML = `
-            <div class="fade-slide-in rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 transition-all duration-300">
-              <div class="flex items-center justify-between gap-3 mb-3">
+            <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 transition-all duration-300 fade-slide-in">
+              <div class="mb-3 flex items-center justify-between gap-3">
                 <div class="text-sm font-medium text-emerald-300">
                   Secret revealed
                 </div>
 
                 <button
                   id="copySecretBtn"
-                  class="rounded-xl bg-slate-800 px-3 py-2 text-xs font-medium text-slate-100 hover:bg-slate-700 transition"
+                  type="button"
+                  class="cursor-pointer rounded-xl bg-slate-800 px-3 py-2 text-xs font-medium text-slate-100 transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-300"
                 >
                   Copy
                 </button>
@@ -851,7 +990,7 @@
 
               <pre
                 id="secretValue"
-                class="whitespace-pre-wrap break-words text-slate-100 font-mono text-sm leading-6 soft-blur"
+                class="whitespace-pre-wrap break-words font-mono text-sm leading-6 text-slate-100 soft-blur"
               >${escapeHtml(plain)}</pre>
             </div>
           `;
@@ -868,21 +1007,21 @@
           copySecretBtn.addEventListener('click', async () => {
             await navigator.clipboard.writeText(plain);
 
-            const old = copySecretBtn.textContent;
+            const oldText = copySecretBtn.textContent;
             copySecretBtn.textContent = 'Copied';
 
             setTimeout(() => {
-              copySecretBtn.textContent = old;
+              copySecretBtn.textContent = oldText;
             }, 1200);
           });
-        } catch (e) {
+        } catch (error) {
           clearInterval(countdownTimer);
 
           resultArea.classList.remove('hidden');
 
           resultArea.innerHTML = `
-            <div class="fade-slide-in rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-rose-300">
-              ${escapeHtml(e.message || 'Failed to reveal secret')}
+            <div class="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-rose-300 fade-slide-in">
+              ${escapeHtml(error.message || 'Failed to reveal secret')}
             </div>
           `;
 
@@ -935,7 +1074,7 @@
           );
 
           renderRecipient(data, tokenParam, key);
-        } catch (e) {
+        } catch (error) {
           renderRecipient(null, tokenParam, null);
         }
       } else {
