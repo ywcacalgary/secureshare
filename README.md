@@ -1,10 +1,10 @@
-# Secure Share
+# SecureShare
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Built with](https://img.shields.io/badge/built%20with-HTML%20%2F%20Tailwind%20%2F%20JavaScript-0ea5e9)](https://developer.mozilla.org/)
 [![Supabase](https://img.shields.io/badge/backend-Supabase-3ecf8e)](https://supabase.com/)
 
-Secure Share is a one-time secret sharing app that lets users generate expiring, single-use links or QR codes for sensitive credentials. It is built as a single HTML file with Tailwind CSS, JavaScript, and Supabase, with token hashing, audit-friendly fields, and a reveal-once recipient flow.
+SecureShare is a one-time secret sharing app that lets users generate expiring, single-use links or QR codes for sensitive credentials. It is built as a single HTML file with Tailwind CSS, JavaScript, and Supabase, with token hashing, audit-friendly fields, and a reveal-once recipient flow.
 
 ## Features
 
@@ -39,6 +39,7 @@ Secure Share is a one-time secret sharing app that lets users generate expiring,
 
 ```text
 secure-share/
+├── assets/
 ├── secureshare.html
 ├── database.sql
 └── README.md
